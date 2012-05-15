@@ -1,0 +1,148 @@
+#!/usr/bin/env luajit
+--[[executable: main
+Lgfeed git-log -> feed
+--]]
+LGF_ID      = 'lgfeed'
+LGF_URL     = 'https://github.com/arr2036/lgfeed'
+LGF_VERSION = '0.00'
+
+local exit = function(num) os.exit(num or 255) end
+
+-- Figure out the path to this file
+local _,_,path  = string.find(arg[0], '(.+[/\\])bin.-')
+if not path then
+    path = './'
+else
+    path = path
+end
+package.path = package.path .. ';' .. path .. '?.lua;'
+
+-- Logging functions
+local log_error   = function(...) io.stderr:write(_G.string.format(...), "\n") end
+local log_warn    = function(...) io.stderr:write(_G.string.format(...), "\n") end
+local log_debug   = function(...) io.stderr:write(_G.string.format(...), "\n") end
+local log_null    = function(...) end
+
+local function usage() 
+    io.stderr:write(string.format([[
+Usage: %s [options]+ [repo]
+    -r      ref to walk backwards from.
+    -c      config file containing feed options.
+    -v      verbose (prints to stderr).
+    -<num>  number of commits to process.
+
+]], string.match(arg[0], "([^/]+)$")))
+end
+
+-- Argument defaults
+local _arg_path    = './'
+local _arg_ref     = 'HEAD'
+local _arg_conf    = path .. 'config'
+local _arg_verbose = false
+local _arg_limit   = -1
+
+-- Parse arguments
+do
+    local optarg = 1
+
+    while arg[optarg] ~= nil and arg[optarg]:byte() == 45 do
+        -- Set ref to traverse back from
+        if arg[optarg] == '-r' then
+            _arg_ref = arg[optarg + 1]; optarg = optarg + 1
+        -- Set feed configuration file
+        elseif arg[optarg] == '-c' then
+            _arg_conf = arg[optarg + 1]; optarg = optarg + 1
+        -- Set verbose output
+        elseif arg[optarg] == '-v' then
+            _arg_verbose = arg[optarg + 1]
+        elseif string.find(arg[optarg], '^-[0-9]+$') then
+            _arg_limit = tonumber(arg[optarg]:sub(2))
+        else
+            usage(); exit()
+        end
+
+        optarg = optarg + 1
+    end
+    
+    if arg[optarg] then 
+        _arg_path = arg[optarg]
+    end
+end
+
+-- Setup logging
+if not _arg_verbose then
+    log_debug = log_null
+end
+
+_G.log_debug = log_debug
+_G.log_warn  = log_warn
+_G.log_error = log_error
+
+-- Load the feed config
+local config = require(_arg_conf)
+
+-- Load the feed output module
+local output = require('lib.output' .. '.' .. config.output).init(config)
+
+-- Load the feed renderer
+local render = require('lib.render' .. '.' .. config.render).init(config, output)
+
+do
+    render.header()
+    
+    -- Load the ffi wrappers for libgit2 (or exit if ligbit2 can't be found)
+    local git2 = require('lib.git2')
+    if not git2 then
+        exit(64)
+    end
+    
+    log_debug('Opening repository: %q', _arg_path)
+    local repo = git2.repository_open(_arg_path)
+    if not repo then
+        exit(65)
+    end
+    
+    log_debug('Getting new walker')
+    local walk = git2.revwalk_new(repo)
+    if walk == nil then
+        exit(66)
+    end
+    
+    log_debug('Resolving ref: %q', _arg_ref)
+    local ref = git2.reference_resolve(repo, _arg_ref);
+    if ref == nil then
+        exit(66)
+    end
+    
+    log_debug('Resolving ref to oid')
+    local oid = git2.reference_oid(ref)
+    
+    log_debug('Will walk backwards from commit: %q', git2.oid_hash(oid))
+    if git2.revwalk_push(walk, oid) < 0 then
+        exit(66)
+    end
+    
+    local count = 0
+    while git2.revwalk_next(oid, walk) >= 0 do
+        if _arg_limit > 0 and _arg_limit <= count then
+            log_debug('Processed maximum number of commits')
+            
+            break
+        end
+        
+        log_debug('Processing commit: %q', git2.oid_hash(oid))
+        
+        local commit = git2.commit_lookup(repo, oid)
+        if commit ~= nil then
+            render.entry(repo, ref, oid, commit)
+        else
+            log_error('Failed to lookup commit from oid')
+        end
+        
+        count = count + 1
+    end
+    
+    render.footer()
+end
+
+exit(0)
