@@ -55,6 +55,7 @@ struct _git_oid {
         unsigned char id[20];
 };
 void git_oid_fmt(char *str, const git_oid *oid);
+int git_oid_iszero(const git_oid *a);
 
 /* error.h */
 const git_error * giterr_last(void);
@@ -103,6 +104,7 @@ int git_tree_lookup(git_tree **tree, git_repository *repo, const git_oid *id);
 const git_tree_entry * git_tree_entry_byindex(git_tree *tree, unsigned int idx);
 int git_tree_diff(git_tree *old, git_tree *newer, git_tree_diff_cb cb, void *data);
 int git_tree_get_subtree(git_tree **subtree, git_tree *root, const char *subtree_path);
+const git_oid * git_tree_entry_id(const git_tree_entry *entry);
 const char * git_tree_entry_name(const git_tree_entry *entry);
 
 /* common.h */
@@ -253,18 +255,6 @@ GIT_SORT_REVERSE     = 4
 
 function last_error()
     return tonumber(lib.giterr_last()[1])
-end
-
-function table_unique(table)
-    local tmp = {}
-    local out = {}
-    for i, v in ipairs(table) do
-        if not tmp[v] then
-          tmp[v] = i
-          t_insert(out, v)
-        end
-    end
-    return out
 end
 
 --[[Function: repository_open
@@ -548,13 +538,20 @@ function commit_filelist(repo, commit)
             
             lib.git_diff_foreach(difflist[0], nil, 
                 function(data, git_diff_data, progress)
-                    t_insert(out, ffi.string(git_diff_data.new_file.path))
+                    t_insert(out, {
+                        path = ffi.string(git_diff_data.new_file.path),
+                        hash = lib.git_oid_iszero(git_diff_data.old_file.oid) == 1 and
+                            oid_hash(git_diff_data.new_file.oid) or
+                            oid_hash(git_diff_data.old_file.oid)
+                    })
+                    
                     return 0
                 end,
                 nil, nil)
                 
             lib.git_diff_list_free(difflist[0])
         end
+        
     -- Handles the corner case where this is the first commit in the repo...
     else
         while true do
@@ -563,11 +560,14 @@ function commit_filelist(repo, commit)
                 break
             end
             
-            t_insert(out, ffi.string(lib.git_tree_entry_name(entry)))
+            t_insert(out, {
+                path = ffi.string(lib.git_tree_entry_name(entry)),
+                hash = oid_hash(lib.git_tree_entry_id(entry))
+            })
             
             count = count + 1
         end
     end
     
-    return table_unique(out)
+    return out
 end

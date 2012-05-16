@@ -7,9 +7,7 @@ module(...)
 function init()
     return function(...)
         local args = {...}
-        local args_san = {}
-        
-        for i=1, #args do
+        for i = 1, #args do
             if not args[i] then
                 stdout:write('')
             else

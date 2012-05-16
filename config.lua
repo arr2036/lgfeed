@@ -10,6 +10,7 @@ link      = 'http://www.example.org'
 author    = 'unknown'
 subtitle  = 'untitled but smaller'
 id        = 'http://www.example.org/lgfeed/feed.xml'
+self      = id
 
 entry = {}
 entry.link = 'http://www.example.org'

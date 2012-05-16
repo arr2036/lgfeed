@@ -39,6 +39,16 @@ function message(message)
     return message:sub(1, eol - 1)
 end
 
+function email(email)
+    local at = email:find('@')
+    
+    if not at then
+        return email .. '@anon.org'
+    end
+    
+    return email
+end
+
 function strip_extension(path)
     local ext = path:find('[.][^.]+$')
     
@@ -59,4 +69,16 @@ function xml_escape(str)
     str = str:gsub('>', '&gt;')
     
     return str
+end
+
+function sha1_hex_to_uuid_ish(str)
+    assert(str:len() == 40)
+
+    return string.format('%s-%s-%x%s-%x%s-%s',
+        str:sub(1,8),
+        str:sub(9,12),
+        5, str:sub(14,16),
+        bit.bor(bit.band(tonumber(str:sub(17, 17), 16), 0x3), 0x8), str:sub(18, 20),
+        str:sub(21, 32)
+    )
 end

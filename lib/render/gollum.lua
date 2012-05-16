@@ -6,6 +6,8 @@ local noext       = helpers.strip_extension
 local fmt_title   = helpers.title
 local fmt_message = helpers.message
 local fmt_ts      = helpers.timestamp
+local fmt_email   = helpers.email
+local fmt_uuid    = helpers.sha1_hex_to_uuid_ish
 
 
 local git2    = require 'lib.git2'
@@ -32,7 +34,8 @@ function header()
     <author>
         <name>]], _config.author, [[</name>
     </author>
-    <generator uri="]], LGF_URL ,[[" version="]], LGF_VERSION, [[">]], LGF_ID , [[</generator>
+    <link href="]], _config.self, [[" rel="self" type="application/atom+xml"/> 
+    <generator uri="]], LGF_URL ,'" version="', LGF_VERSION, '">', LGF_ID , [[</generator>
 ]])
 end
 
@@ -56,18 +59,19 @@ function entry(repo, ref, oid, commit)
         message = 'Changes were not described.'
     end
     
-    for _, file in ipairs(git2.commit_filelist(repo, commit)) do
-        file = escape(noext(file))
+    for _, file_info in ipairs(git2.commit_filelist(repo, commit)) do
+        file = escape(noext(file_info.path))
+        uuid = fmt_uuid(file_info.hash)
         
         _output(
 [[
     <entry>
         <title>]], file, ' updated -- ', title, [[</title>
         <link href="]], _config.entry.link, '/', file, [["/>
-        <id>urn:uuid:]], hash, [[</id> 
+        <id>urn:uuid:]], uuid, [[</id> 
         <author>
             <name>]]  , escape(info.author), [[</name>
-            <email>]] , escape(info.author_email),  [[</email>
+            <email>]] , escape(fmt_email(info.author_email)),  [[</email>
         </author>
         <updated>]]   , fmt_ts(info.time), [[</updated>
 ]]
@@ -78,7 +82,7 @@ function entry(repo, ref, oid, commit)
 [[
         <contributor>
             <name>]], escape(info.committer) ,[[</name>
-            <email>]], escape(info.committer_email), [[</email>
+            <email>]], escape(fmt_email(info.committer_email)), [[</email>
         </contributor>
 ]]
                     )
@@ -86,13 +90,14 @@ function entry(repo, ref, oid, commit)
         
         _output(
 [[
-        <summary type='html'>
-            <p>]],
-                '<a href="mailto:', escape(info.author_email), '">', escape(info.author),'</a>',
-                ' modified ',
-                '<a href="', _config.entry.link, '/', file, '">', file, '</a> ',
-                '[<a href="', _config.entry.link, '/', file, '/', hash, '">', hash:sub(1, 7), [[</a>]</p>
-            <p>]], message ,[[</p>
+        <summary type='xhtml'>
+            <div xmlns="http://www.w3.org/1999/xhtml">
+                <p>]],
+                    '<a href="mailto:', escape(fmt_email(info.author_email)), '">', escape(info.author),'</a>',
+                    ' modified ',
+                    '<a href="', _config.entry.link, '/', file, '">', file, '</a> ',
+                    '[<a href="', _config.entry.link, '/', file, '/', hash, '">', hash:sub(1, 7), [[</a>]</p>
+                <p>]], message ,[[</p>
 ]])
         if hash_p then
             _output(
@@ -103,6 +108,7 @@ function entry(repo, ref, oid, commit)
  
         _output(
 [[
+            </div>
         </summary>
 ]])
         
