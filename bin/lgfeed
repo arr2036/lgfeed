@@ -102,12 +102,6 @@ do
         exit(65)
     end
     
-    log_debug('Getting new walker')
-    local walk = git2.revwalk_new(repo)
-    if walk == nil then
-        exit(66)
-    end
-    
     log_debug('Resolving ref: %q', _arg_ref)
     local ref = git2.reference_resolve(repo, _arg_ref);
     if ref == nil then
@@ -117,8 +111,10 @@ do
     log_debug('Resolving ref to oid')
     local oid = git2.reference_oid(ref)
     
-    log_debug('Will walk backwards from commit: %q', git2.oid_hash(oid))
-    if git2.revwalk_push(walk, oid) < 0 then
+    log_debug('Getting new walker')
+    local sort = bit.bor(git2.GIT_SORT_TOPOLOGICAL, git2.GIT_SORT_TIME)
+    local walk = git2.revwalk_new(repo, sort, oid)
+    if walk == nil then
         exit(66)
     end
     

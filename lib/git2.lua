@@ -246,6 +246,11 @@ local GIT_OBJ__EXT2     = 5
 local GIT_OBJ_OFS_DELTA = 6
 local GIT_OBJ_REF_DELTA = 7
 
+GIT_SORT_NONE        = 0
+GIT_SORT_TOPOLOGICAL = 1
+GIT_SORT_TIME        = 2
+GIT_SORT_REVERSE     = 4
+
 function last_error()
     return tonumber(lib.giterr_last()[1])
 end
@@ -288,7 +293,7 @@ end
 Parameters:
     repo - to walk over.
 --]]
-function revwalk_new(repo)
+function revwalk_new(repo, sort, oid)
     local out = ffi.new('git_revwalk*[1]');
     local err = lib.git_revwalk_new(out , repo)
     if err < 0 then
@@ -296,8 +301,23 @@ function revwalk_new(repo)
         
         return nil
     end
+    
+    if oid then
+        lib.git_revwalk_push(out[0], oid)
+    end
+    
+    if sort then
+        lib.git_revwalk_sorting(out[0], sort)
+    end
 
     return ffi.gc(out[0], lib.git_revwalk_free)
+end
+
+--[[Function: revwalk_next
+Write the next oid in the revision tree to oid.
+--]]
+function revwalk_next(oid, revwalk)
+    return lib.git_revwalk_next(oid, revwalk)
 end
 
 --[[Function: git_commit_free
@@ -423,25 +443,6 @@ function oid_hash(oid)
     lib.git_oid_fmt(oid_hash_buff, oid)
     
     return ffi.string(oid_hash_buff, 40)
-end
-
-function revwalk_push(revwalk, oid)
-    return lib.git_revwalk_push(revwalk, oid)
-end
-
-function revwalk_sorting(revwalk, sort_mode)
-    return lib.git_revwalk_sorting(revwalk, sort_mode)
-end
-
-function new_oid()
-    return 
-end
-
---[[Function: revwalk_next
-Write the next oid in the revision tree to oid.
---]]
-function revwalk_next(oid, revwalk)
-    return lib.git_revwalk_next(oid, revwalk)
 end
 
 --[[Function: reference_resolve
