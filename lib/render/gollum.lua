@@ -63,7 +63,7 @@ function entry(repo, ref, oid, commit)
 [[
     <entry>
         <title>]], file, ' updated -- ', title, [[</title>
-        <link href="]], _config.entry.link, '/', file, '/', hash, [["/>
+        <link href="]], _config.entry.link, '/', file, [["/>
         <id>urn:uuid:]], hash, [[</id> 
         <author>
             <name>]]  , escape(info.author), [[</name>
@@ -90,8 +90,8 @@ function entry(repo, ref, oid, commit)
             <p>]],
                 '<a href="mailto:', escape(info.author_email), '">', escape(info.author),'</a>',
                 ' modified ',
-                '<a href="', _config.entry.link, '/', file, '/', hash,'">', file, '</a> ',
-                '<a href="', _config.entry.link, '/', file, [[">(latest)</a></p>
+                '<a href="', _config.entry.link, '/', file, '">', file, '</a> ',
+                '[<a href="', _config.entry.link, '/', file, '/', hash, '">', hash:sub(1, 7), [[</a>]</p>
             <p>]], message ,[[</p>
 ]])
         if hash_p then
