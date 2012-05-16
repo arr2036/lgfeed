@@ -1,11 +1,12 @@
 module(..., package.seeall)
 local helpers = require 'lib.helpers'
 
-local escape  = helpers.xml_escape
-local title   = helpers.title
-local message = helpers.message
-local ts      = helpers.timestamp
-local noext   = helpers.strip_extension
+local escape      = helpers.xml_escape
+local noext       = helpers.strip_extension
+local fmt_title   = helpers.title
+local fmt_message = helpers.message
+local fmt_ts      = helpers.timestamp
+
 
 local git2    = require 'lib.git2'
 
@@ -26,8 +27,8 @@ function header()
     <title>]]   , _config.title      , [[</title>
     <logo>]]    , _config.logo       , [[</logo>
     <subtitle>]], _config.subtitle   , [[</subtitle>
-    <updated>]] , ts(), [[</updated>
-    <id>]]      , _config.id, [[</id>
+    <updated>]] , fmt_ts()           , [[</updated>
+    <id>]]      , _config.id         , [[</id>
     <author>
         <name>]], _config.author, [[</name>
     </author>
@@ -45,18 +46,30 @@ function entry(repo, ref, oid, commit)
         hash_p = git2.oid_hash(git2.commit_parent_oid(commit, 0))
     end
     
+    local message; local title;
+    
+    if info.message and info.message:len() > 0 then
+        title   = escape(fmt_title(info.message))
+        message = escape(fmt_message(info.message))
+    else
+        title   = 'changes not described.'
+        message = 'Changes were not described.'
+    end
+    
     for _, file in ipairs(git2.commit_filelist(repo, commit)) do
+        file = escape(noext(file))
+        
         _output(
 [[
     <entry>
-        <title>]], escape(title(info.message)), [[</title>
-        <link href="]], _config.entry.link, '/', escape(noext(file)), '/', hash, [["/>
+        <title>]], file, ' updated -- ', title, [[</title>
+        <link href="]], _config.entry.link, '/', file, '/', hash, [["/>
         <id>urn:uuid:]], hash, [[</id> 
         <author>
             <name>]]  , escape(info.author), [[</name>
             <email>]] , escape(info.author_email),  [[</email>
         </author>
-        <updated>]]   , ts(info.time), [[</updated>
+        <updated>]]   , fmt_ts(info.time), [[</updated>
 ]]
             )
     
@@ -71,29 +84,31 @@ function entry(repo, ref, oid, commit)
                     )
         end
         
+        _output(
+[[
+        <summary type='html'>
+            <p>]],
+                '<a href="mailto:', escape(info.author_email), '">', escape(info.author),'</a>',
+                ' modified ',
+                '<a href="', _config.entry.link, '/', file, '/', hash,'">', file, '</a> ',
+                '<a href="', _config.entry.link, '/', file, [[">(latest)</a></p>
+            <p>]], message ,[[</p>
+]])
         if hash_p then
-        _output(
+            _output(
 [[
-        <summary type='html'>
-            <p>]], escape(message(info.message)) , [[</p>
-            <p><a href="]],_config.entry.link, '/compare/', escape(noext(file)), '/', hash_p, '...', hash, [[">[diff]</a></p>
-        </summary>
-]]
-                )
-        else
-        _output(
-[[
-        <summary type='html'>
-            <p>]], escape(message(info.message)) , [[</p>
-            <p>initial commit</p>
-        </summary>
-]]
-                )        
+            <p><a href="]], _config.entry.link, '/compare/', file, '/', hash_p, '...', hash, [[">Show changes...</a></p>
+]])
         end
+ 
+        _output(
+[[
+        </summary>
+]])
         
-        _output [[
+        _output([[
     </entry>
-]]
+]])
     end
 end
 

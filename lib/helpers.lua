@@ -52,11 +52,11 @@ end
 function xml_escape(str)
     if not str then return '' end
     
+    str = str:gsub('&', '&amp;')
     str = str:gsub('"', '&quot;')
     str = str:gsub("'", '&apos;')
     str = str:gsub('<', '&lt;')
     str = str:gsub('>', '&gt;')
-    str = str:gsub('&', '&amp;')
     
     return str
 end
