@@ -85,6 +85,7 @@ const char * git_commit_message(git_commit *commit);
 int git_commit_tree(git_tree **tree_out, git_commit *commit);
 unsigned int git_commit_parentcount(git_commit *commit);
 const git_oid * git_commit_parent_oid(git_commit *commit, unsigned int n);
+git_oid * git_commit_id(git_commit *commit);
 int git_commit_parent(git_commit **parent, git_commit *commit, unsigned int n);
 git_time_t git_commit_time(git_commit *commit);
 
@@ -471,6 +472,22 @@ function reference_resolve(repo, name)
     return ffi.gc(git_reference_resolve[0], lib.git_reference_free)
 end
 
+--[[Function: oid_splice
+Take the first 10 bytes of oid_a, and the last 10 bytes of oid_b and write, 
+them into a new oid object.
+
+This object is not useful in the context of the git repo, but does give each 
+file a unique commit/path id.
+--]]
+function oid_splice(oid_a, oid_b)
+    local out = ffi.new('git_oid[1]')
+    
+    ffi.copy(out[0].id, oid_a.id, 10)
+    ffi.copy(out[0].id + 10, oid_b.id + 10, 10)
+    
+    return out
+end
+
 --[[Function: reference_oid
 Return the object id associated with a reference.
 --]]
@@ -533,6 +550,8 @@ function commit_filelist(repo, commit)
                 return nil
             end
             
+            local commit_oid = lib.git_commit_id(parent)
+            
             local old_tree = commit_tree(parent)
             lib.git_diff_tree_to_tree(repo, nil, old_tree, new_tree, difflist)
             
@@ -540,9 +559,7 @@ function commit_filelist(repo, commit)
                 function(data, git_diff_data, progress)
                     t_insert(out, {
                         path = ffi.string(git_diff_data.new_file.path),
-                        hash = lib.git_oid_iszero(git_diff_data.old_file.oid) == 1 and
-                            oid_hash(git_diff_data.new_file.oid) or
-                            oid_hash(git_diff_data.old_file.oid)
+                        hash = oid_hash(oid_splice(commit_oid, git_diff_data.new_file.oid))
                     })
                     
                     return 0
@@ -554,6 +571,8 @@ function commit_filelist(repo, commit)
         
     -- Handles the corner case where this is the first commit in the repo...
     else
+        local commit_oid = lib.git_commit_id(commit)
+        
         while true do
             local entry = lib.git_tree_entry_byindex(new_tree, count)
             if entry == nil then
@@ -562,7 +581,7 @@ function commit_filelist(repo, commit)
             
             t_insert(out, {
                 path = ffi.string(lib.git_tree_entry_name(entry)),
-                hash = oid_hash(lib.git_tree_entry_id(entry))
+                hash = oid_hash(oid_splice(commit_oid, lib.git_tree_entry_id(entry)))
             })
             
             count = count + 1

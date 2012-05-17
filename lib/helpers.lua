@@ -40,13 +40,7 @@ function message(message)
 end
 
 function email(email)
-    local at = email:find('@')
-    
-    if not at then
-        return email .. '@anon.org'
-    end
-    
-    return email
+    return email:find('@') and email or email .. '@anon.org'
 end
 
 function strip_extension(path)
