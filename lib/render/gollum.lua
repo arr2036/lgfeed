@@ -94,8 +94,8 @@ function entry(repo, ref, oid, commit)
             <div xmlns="http://www.w3.org/1999/xhtml">
                 <p>]],
                     '<a href="mailto:', escape(fmt_email(info.author_email)), '">', escape(info.author),'</a>',
-                    ' modified ',
-                    '<a href="', _config.entry.link, '/', file, '">', file, '</a> ',
+                    '&#160;modified&#160;',
+                    '<a href="', _config.entry.link, '/', file, '">', file, '</a>&#160;',
                     '[<a href="', _config.entry.link, '/', file, '/', hash, '">', hash:sub(1, 7), [[</a>]</p>
                 <p>]], message ,[[</p>
 ]])
