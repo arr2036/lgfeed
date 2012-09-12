@@ -92,9 +92,6 @@ do
     
     -- Load the ffi wrappers for libgit2 (or exit if ligbit2 can't be found)
     local git2 = require('lib.git2')
-    if not git2 then
-        exit(64)
-    end
     
     log_debug('Opening repository: %q', _arg_path)
     local repo = git2.repository_open(_arg_path)

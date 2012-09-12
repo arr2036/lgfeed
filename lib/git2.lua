@@ -8,6 +8,7 @@ local print    = _G.print
 local pcall    = _G.pcall
 local ipairs   = _G.ipairs
 local t_insert = _G.table.insert
+local exit     = _G.os.exit
 
 local log_debug = _G.log_debug
 local log_warn  = _G.log_warn
@@ -235,7 +236,7 @@ local found, ret = pcall(ffi.load, 'git2')
 if not found then
     log_error('Failed to load libgit2, verify library is installed and in your LD_LOAD_PATH: %s', ret) 
 
-    return false
+    exit(64)
 end
 
 local lib = ret
@@ -429,7 +430,17 @@ function commit_info(commit)
     }
 end
 
-local oid_hash_buff = ffi.new('char[?]', 40)
+--[[Function: oid_hash
+Convert binary hash to hex.
+
+Parameters:
+    oid - to convert.
+    
+Returns:
+    hex string.
+
+--]]
+local oid_hash_buff = ffi.new('char[41]')
 function oid_hash(oid)
     lib.git_oid_fmt(oid_hash_buff, oid)
     
@@ -478,6 +489,13 @@ them into a new oid object.
 
 This object is not useful in the context of the git repo, but does give each 
 file a unique commit/path id.
+
+Parameters:
+    oid_a - first oid.
+    oid_b - second oid.
+    
+Return:
+
 --]]
 function oid_splice(oid_a, oid_b)
     local out = ffi.new('git_oid[1]')

@@ -10,7 +10,7 @@ local fmt_email   = helpers.email
 local fmt_uuid    = helpers.sha1_hex_to_uuid_ish
 
 
-local git2    = require 'lib.git2'
+local git2 = require 'lib.git2'
 
 local _config
 local _output
