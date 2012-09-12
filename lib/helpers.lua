@@ -76,3 +76,19 @@ function sha1_hex_to_uuid_ish(str)
         str:sub(21, 32)
     )
 end
+
+function string:split(delimiter)
+    local result = {}
+    local from = 1
+    local delim_from, delim_to
+    while true do
+        delim_from, delim_to = self:find(delimiter, from)
+        if not delim_from then break end
+        table.insert(result, self:sub(from, delim_from - 1))
+        from = delim_to + 1
+    end
+
+    table.insert(result, self:sub(from))
+    
+    return result
+end

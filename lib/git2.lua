@@ -108,6 +108,7 @@ int git_tree_diff(git_tree *old, git_tree *newer, git_tree_diff_cb cb, void *dat
 int git_tree_get_subtree(git_tree **subtree, git_tree *root, const char *subtree_path);
 const git_oid * git_tree_entry_id(const git_tree_entry *entry);
 const char * git_tree_entry_name(const git_tree_entry *entry);
+int git_oid_cmp(const git_oid *a, const git_oid *b);
 
 /* common.h */
 typedef struct {
@@ -518,6 +519,13 @@ function reference_oid(reference)
     end
     
     return ffi.cast('git_oid*', oid)
+end
+
+--[[Function: oid_equal
+Tests quality between two oids
+--]]
+function oid_equal(oid1, oid2)
+    return lib.git_oid_cmp(oid1, oid2) == 0
 end
 
 local function git_tree_free(tree)

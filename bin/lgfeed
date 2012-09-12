@@ -26,7 +26,7 @@ local log_null    = function(...) end
 local function usage() 
     io.stderr:write(string.format([[
 Usage: %s [options]+ [repo]
-    -r      ref to walk backwards from.
+    -r      ref to walk backwards from (use ... to process only the commits between two refs).
     -c      config file containing feed options.
     -v      verbose (prints to stderr).
     -<num>  number of commits to process.
@@ -100,13 +100,24 @@ do
     end
     
     log_debug('Resolving ref: %q', _arg_ref)
-    local ref = git2.reference_resolve(repo, _arg_ref);
+    local refs = _arg_ref:split('%.%.%.')
+    local ref, ref_end, oid, oid_end
+    ref = git2.reference_resolve(repo, refs[1]);
     if ref == nil then
         exit(66)
     end
     
-    log_debug('Resolving ref to oid')
-    local oid = git2.reference_oid(ref)
+    oid = git2.reference_oid(ref)    
+    
+    if #refs > 1 then
+        ref_end = git2.reference_resolve(repo, refs[2]);
+        
+        if ref_end == nil then
+            exit(66)
+        end
+        
+        oid_end = git2.reference_oid(ref_end)
+    end
     
     log_debug('Getting new walker')
     local sort = bit.bor(git2.GIT_SORT_TOPOLOGICAL, git2.GIT_SORT_TIME)
@@ -117,6 +128,12 @@ do
     
     local count = 0
     while git2.revwalk_next(oid, walk) >= 0 do
+        if ref_end and git2.oid_equal(oid, oid_end) then
+           log_debug('Processed all commits in range')
+           
+           break
+        end
+        
         if _arg_limit > 0 and _arg_limit <= count then
             log_debug('Processed maximum number of commits')
             
