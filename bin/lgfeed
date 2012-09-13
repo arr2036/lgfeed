@@ -119,6 +119,12 @@ do
         oid_end = git2.reference_oid(ref_end)
     end
     
+    if ref_end and git2.oid_equal(oid, oid_end) then
+       log_error('Starting and ending refs are identical')
+   
+       exit(64)
+    end
+    
     log_debug('Getting new walker')
     local sort = bit.bor(git2.GIT_SORT_TOPOLOGICAL, git2.GIT_SORT_TIME)
     local walk = git2.revwalk_new(repo, sort, oid)
