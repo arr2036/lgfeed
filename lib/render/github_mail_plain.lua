@@ -33,7 +33,7 @@ function entry(repo, ref, oid, commit)
     
     local author, title, message;
     if info.committer ~= info.author then
-        author = info.author + "via (" + info.committer + ")"
+        author = info.author .. "via (" .. info.committer .. ")"
     else
         author = info.author
     end
