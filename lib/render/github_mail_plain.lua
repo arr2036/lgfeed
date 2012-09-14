@@ -24,7 +24,9 @@ end
 
 function header()
     _output(
-'New activity for ', _config.title, ' (', _config.subtitle, ')', "\n\n")
+'New activity for ', _config.title, ' (', _config.subtitle, ')',
+"\n\n", '======', "\n"
+)
 end
 
 function entry(repo, ref, oid, commit)
@@ -48,8 +50,8 @@ function entry(repo, ref, oid, commit)
         message = 'Unknown'
     end
     
-    _output(message, "\n")
-    _output('Author: ', author, '@', fmt_ts(info.time), "\n")
+    _output(message, "\n\n")
+    _output(author, '@', fmt_ts(info.time), "\n")
     _output("Files modified:\n")
     
     for _, file_info in ipairs(git2.commit_filelist(repo, commit)) do
