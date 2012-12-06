@@ -570,31 +570,28 @@ function commit_filelist(repo, commit)
     local count = commit_parentcount(commit)
     
     if count > 0 then
-        for i = 0, count - 1 do
-            local parent = commit_parent(commit, i)
-            if not parent then
-                return nil
-            end
-            
-            local commit_oid = lib.git_commit_id(parent)
-            
-            local old_tree = commit_tree(parent)
-            lib.git_diff_tree_to_tree(repo, nil, old_tree, new_tree, difflist)
-            
-            lib.git_diff_foreach(difflist[0], nil, 
-                function(data, git_diff_data, progress)
-                    t_insert(out, {
-                        path = ffi.string(git_diff_data.new_file.path),
-                        hash = oid_hash(oid_splice(commit_oid, git_diff_data.new_file.oid))
-                    })
-                    
-                    return 0
-                end,
-                nil, nil)
-                
-            lib.git_diff_list_free(difflist[0])
+        local parent = commit_parent(commit, 0)
+        if not parent then
+           return nil
         end
+    
+        local commit_oid = lib.git_commit_id(parent)
+    
+        local old_tree = commit_tree(parent)
+        lib.git_diff_tree_to_tree(repo, nil, old_tree, new_tree, difflist)
+    
+        lib.git_diff_foreach(difflist[0], nil, 
+            function(data, git_diff_data, progress)
+                t_insert(out, {
+                    path = ffi.string(git_diff_data.new_file.path),
+                    hash = oid_hash(oid_splice(commit_oid, git_diff_data.new_file.oid))
+                })
+            
+                return 0
+            end,
+            nil, nil)
         
+        lib.git_diff_list_free(difflist[0])
     -- Handles the corner case where this is the first commit in the repo...
     else
         local commit_oid = lib.git_commit_id(commit)
